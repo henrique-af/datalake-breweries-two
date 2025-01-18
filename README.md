@@ -1,5 +1,3 @@
-You're absolutely right. I'll add that important information to the README. Here's an updated version with the login credentials:
-
 # Brewery Data Pipeline
 
 This project implements a data pipeline to collect and store information about breweries using the OpenBreweryDB API and storing the data in a MinIO data lake.
