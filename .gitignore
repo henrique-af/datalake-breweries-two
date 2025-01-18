@@ -53,5 +53,3 @@ minio_data/
 
 # Environment variables
 .env
-
-README.md
