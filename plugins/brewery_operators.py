@@ -1,13 +1,11 @@
 from airflow.models import BaseOperator
-from airflow.utils.decorators import apply_defaults
 import requests
 from minio import Minio
 from io import BytesIO
 import json
 from datetime import datetime
 
-class PaginatedAPIExtractOperator(BaseOperator):
-    @apply_defaults
+class APIExtractorOperator(BaseOperator):
     def __init__(self, api_url, params=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.api_url = api_url
@@ -43,8 +41,7 @@ class PaginatedAPIExtractOperator(BaseOperator):
 
         return all_data
 
-class StoreJSONMinIOOperator(BaseOperator):
-    @apply_defaults
+class WriteBronzeLayerOperator(BaseOperator):
     def __init__(self, bucket, minio_endpoint, minio_access_key, minio_secret_key, 
                  data_key=None, filename_prefix='data', *args, **kwargs):
         super().__init__(*args, **kwargs)

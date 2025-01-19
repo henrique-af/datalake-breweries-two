@@ -3,7 +3,8 @@ from airflow.decorators import dag
 from airflow.providers.http.sensors.http import HttpSensor
 from datetime import datetime, timedelta
 import os
-from brewery_operators import ExtractBreweriesOperator, StoreDataMinIOOperator
+from spark_operator import SilverLayerOperator, WriteSilverLayerOperator
+from brewery_operators import APIExtractorOperator, WriteBronzeLayerOperator
 
 # Configuration Constants
 API_URL = os.getenv('BREWERY_API_URL', "https://api.openbrewerydb.org/breweries")
@@ -11,6 +12,7 @@ MINIO_ENDPOINT = os.getenv('MINIO_ENDPOINT', 'minio:9000')
 MINIO_ACCESS_KEY = os.getenv('MINIO_ACCESS_KEY', 'minio')
 MINIO_SECRET_KEY = os.getenv('MINIO_SECRET_KEY', 'minio123')
 BRONZE_BUCKET = 'bronze'
+SILVER_BUCKET = 'silver'
 
 default_args = {
     'owner': 'Henrique',
@@ -37,19 +39,37 @@ def dag_breweries():
         mode='reschedule',
     )
 
-    extract_breweries = ExtractBreweriesOperator(
+    extract_breweries = APIExtractorOperator(
         task_id='extract_breweries',
         api_url=API_URL
     )
 
-    store_breweries = StoreDataMinIOOperator(
-        task_id='store_breweries',
+    store_bronze = WriteBronzeLayerOperator(
+        task_id='store_bronze',
         bucket=BRONZE_BUCKET,
         minio_endpoint=MINIO_ENDPOINT,
         minio_access_key=MINIO_ACCESS_KEY,
         minio_secret_key=MINIO_SECRET_KEY
     )
+    
+    transform_silver = SilverLayerOperator(
+        task_id='transform_to_silver',
+        source_bucket=BRONZE_BUCKET,
+        dest_bucket=SILVER_BUCKET,
+        minio_endpoint=MINIO_ENDPOINT,
+        minio_access_key=MINIO_ACCESS_KEY,
+        minio_secret_key=MINIO_SECRET_KEY
+    )
 
-    check_api >> extract_breweries >> store_breweries
+    write_silver = WriteSilverLayerOperator(
+        task_id='write_silver',
+        dest_bucket=SILVER_BUCKET,
+        minio_endpoint=MINIO_ENDPOINT,
+        minio_access_key=MINIO_ACCESS_KEY,
+        minio_secret_key=MINIO_SECRET_KEY
+    )
+
+
+    check_api >> extract_breweries >> store_bronze >> transform_silver >> write_silver
 
 dag = dag_breweries()
