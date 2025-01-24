@@ -57,18 +57,18 @@ class DataQualityOperator(BaseOperator):
             path = f"s3a://{self.source_bucket}/silver_data"
             df = spark.read.parquet(path)
 
-            # 3) Check total record count
-            record_count = df.count()
-            self.log.info(f"Record count for {path}: {record_count}")
-            if record_count < self.min_record_count:
-                raise ValueError(f"Data quality check failed: record count {record_count} is below threshold {self.min_record_count}.")
-
-            # 4) Check for nulls in critical columns
+            # 3) Check if DataFrame is empty
+            if df.isEmpty():
+                raise ValueError(f"Data quality check failed: {path} is empty.")
+            
+            # 4) Check for minimum records
+            if df.limit(self.min_record_count).count() < self.min_record_count:
+                raise ValueError(f"Data quality check failed: record count is below threshold {self.min_record_count}.")
+            
+            # 5) Check for nulls in critical columns
             for col_name in self.critical_columns:
-                null_count = df.filter(col(col_name).isNull() | (col(col_name) == "")).count()
-                self.log.info(f"Null/Empty count for column '{col_name}': {null_count}")
-                if null_count > 0:
-                    raise ValueError(f"Data quality check failed: column '{col_name}' has {null_count} null or empty values.")
+                if df.filter(col(col_name).isNull() | (col(col_name) == "")).limit(1).count() > 0:
+                    raise ValueError(f"Data quality check failed: column '{col_name}' contains null or empty values.")
 
             self.log.info("Data quality checks passed successfully.")
         finally:

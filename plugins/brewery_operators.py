@@ -231,15 +231,17 @@ class ProcessSilverLayerOperator(BaseOperator):
         Builds/returns a SparkSession configured to read/write from an S3-compatible 
         storage (MinIO) using Hadoop AWS library.
         """
-        return SparkSession.builder \
-            .appName("ProcessSilverLayer") \
-            .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.1") \
-            .config("spark.hadoop.fs.s3a.endpoint", f"http://{self.minio_endpoint}") \
-            .config("spark.hadoop.fs.s3a.access.key", self.minio_access_key) \
-            .config("spark.hadoop.fs.s3a.secret.key", self.minio_secret_key) \
-            .config("spark.hadoop.fs.s3a.path.style.access", "true") \
-            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        return (
+            SparkSession.builder
+            .appName("ProcessSilverLayer")
+            .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.1")
+            .config("spark.hadoop.fs.s3a.endpoint", f"http://{self.minio_endpoint}")
+            .config("spark.hadoop.fs.s3a.access.key", self.minio_access_key)
+            .config("spark.hadoop.fs.s3a.secret.key", self.minio_secret_key)
+            .config("spark.hadoop.fs.s3a.path.style.access", "true")
+            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
             .getOrCreate()
+            )
 
     @staticmethod
     def _transform_to_silver(df):
@@ -359,15 +361,13 @@ class ProcessGoldLayerOperator(BaseOperator):
         using the org.postgresql driver.
         """
         return (
-            SparkSession.builder
-            .appName("ProcessGoldLayer")
+            SparkSession.builder.appName("ProcessGoldLayer")
             .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.1,org.postgresql:postgresql:42.2.18")
             .config("spark.hadoop.fs.s3a.endpoint", f"http://{self.minio_endpoint}")
             .config("spark.hadoop.fs.s3a.access.key", self.minio_access_key)
             .config("spark.hadoop.fs.s3a.secret.key", self.minio_secret_key)
             .config("spark.hadoop.fs.s3a.path.style.access", "true")
-            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-            .getOrCreate()
+            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem").getOrCreate()
         )
 
     @staticmethod
@@ -384,14 +384,6 @@ class ProcessGoldLayerOperator(BaseOperator):
         overwriting any existing data.
         """
         jdbc_url = f"jdbc:postgresql://{self.pg_host}:{self.pg_port}/{self.pg_db}"
-        df.write \
-            .format("jdbc") \
-            .option("url", jdbc_url) \
-            .option("dbtable", "gold_layer.brewery_summary") \
-            .option("user", self.pg_user) \
-            .option("password", self.pg_password) \
-            .option("driver", "org.postgresql.Driver") \
-            .mode("overwrite") \
-            .save()
-
+        df.write.format("jdbc").option("url", jdbc_url).option("dbtable", "gold_layer.brewery_summary").option("user", self.pg_user).option("password", self.pg_password).option("driver", "org.postgresql.Driver").mode("overwrite").save()
+        
         self.log.info("Gold data written to PostgreSQL in table 'gold_layer.brewery_summary'.")

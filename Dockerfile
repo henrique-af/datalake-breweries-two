@@ -3,9 +3,7 @@ FROM apache/airflow:2.7.3
 USER root
 
 # Install OpenJDK 11 for Spark components
-RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk ant wget && \
-    apt-get clean
+RUN apt-get update && apt-get install -y openjdk-11-jdk ant wget && apt-get clean
 
 # Set the JAVA_HOME environment variable for Java 11
 ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64/
