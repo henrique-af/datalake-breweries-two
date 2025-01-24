@@ -6,6 +6,7 @@ unittests.cfg
 webserver_config.py
 airflow-webserver.pid
 
+
 # Python
 __pycache__/
 *.py[cod]
@@ -27,6 +28,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.venv
+teste.py
 
 # Virtual Environment
 venv/
