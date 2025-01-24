@@ -176,7 +176,6 @@ Monitoring is essential for production pipelines to detect failures or anomalies
 
 1. Add CI/CD pipelines to automate testing on every commit.
 2. Implement incremental updates instead of overwriting entire datasets in each layer.
-3. Add advanced transformations/enrichments in Silver layer
-4. Implement monitoring dashboards using Grafana/Prometheus for real-time task tracking.
+3. Add advanced transformations/enrichments in Silver layer.
+4. Implement monitoring dashboards for real-time task tracking.
 5. Explore cloud deployment options for production readiness.
-```
