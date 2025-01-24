@@ -1,7 +1,7 @@
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 import requests
-from minio import Minio, S3Error
+from minio import Minio
 from io import BytesIO
 import json
 from datetime import datetime
@@ -168,17 +168,25 @@ class ProcessSilverLayerOperator(BaseOperator):
     def execute(self, context):
         """
         Main routine:
-         1) Initializes Spark
-         2) Reads JSON from the Bronze bucket
-         3) Transforms the data into a standardized schema
-         4) Writes the result in Parquet, partitioned by 'state'
+        1) Initializes Spark
+        2) Identifies the most recent JSON file in the Bronze bucket
+        3) Reads the JSON file
+        4) Transforms the data into a standardized schema
+        5) Writes the result in Parquet, partitioned by 'state'
         """
         self.log.info("Processing data from Bronze to Silver layer")
         spark = self._get_spark_session()
         
         try:
-            # Read data from Bronze as JSON
-            bronze_data = spark.read.json(f"s3a://{self.source_bucket}/")
+            # Identify the most recent file in the Bronze bucket
+            most_recent_file = self._get_most_recent_file()
+            if not most_recent_file:
+                raise FileNotFoundError("No files found in the Bronze bucket.")
+
+            self.log.info(f"Reading the most recent file: {most_recent_file}")
+
+            # Read data from the most recent JSON file
+            bronze_data = spark.read.json(f"s3a://{self.source_bucket}/{most_recent_file}")
             
             # Transform the JSON data into a curated Silver format
             silver_data = self._transform_to_silver(bronze_data)
@@ -190,6 +198,33 @@ class ProcessSilverLayerOperator(BaseOperator):
             self.log.info(f"Silver data written to {silver_path}")
         finally:
             spark.stop()
+            
+    def _get_most_recent_file(self):
+        """
+        Identifies the most recent file in the Bronze bucket using MinIO.
+        Returns the name of the most recent file or None if no files are found.
+        """
+        
+        # Initialize MinIO client
+        client = Minio(
+            self.minio_endpoint,
+            access_key=self.minio_access_key,
+            secret_key=self.minio_secret_key,
+            secure=False
+        )
+
+        # List all objects in the source bucket
+        objects = client.list_objects(self.source_bucket, recursive=True)
+
+        # Find the most recent object based on last_modified timestamp
+        most_recent_object = None
+        for obj in objects:
+            if not most_recent_object or obj.last_modified > most_recent_object.last_modified:
+                most_recent_object = obj
+
+        return most_recent_object.object_name if most_recent_object else None
+
+
 
     def _get_spark_session(self):
         """

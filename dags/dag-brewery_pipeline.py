@@ -87,8 +87,8 @@ with DAG(
         minio_secret_key=MINIO_SECRET_KEY
     )
     
-    # Task 5: 
-    
+    # Task 5: This task ensures that the data in the Silver layer meets minimum quality 
+    # standards before proceeding to the Gold layer.
     data_quality_check = DataQualityOperator(
     task_id="data_quality_check",
     source_bucket=SILVER_BUCKET,
